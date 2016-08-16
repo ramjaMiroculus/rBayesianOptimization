@@ -171,10 +171,22 @@ BayesianOptimization <- function(FUN, bounds, init_grid_dt = NULL, init_points =
                           corr = kernel, ...)
     })
     # Minimizing Negative Utility Function
-    Next_Par <- Utility_Max(DT_bounds, GP, acq = acq, y_max = max(DT_history[, Value]), kappa = kappa, eps = eps) %>%
-      Min_Max_Inverse_Scale_Vec(., lower = DT_bounds[, Lower], upper = DT_bounds[, Upper]) %>%
-      magrittr::set_names(., DT_bounds[, Parameter]) %>%
-      inset(., DT_bounds[Type == "integer", Parameter], round(extract(., DT_bounds[Type == "integer", Parameter])))
+    val <-
+      Utility_Max(
+        DT_bounds,
+        GP,
+        acq = acq,
+        y_max = max(DT_history[, Value]),
+        kappa = kappa,
+        eps = eps
+      )
+    Next_Par <-
+      Min_Max_Inverse_Scale_Vec(val$argmax, lower = DT_bounds[, Lower], upper = DT_bounds[, Upper]) %>% magrittr::set_names(., DT_bounds[, Parameter]) %>% inset(., DT_bounds[Type == "integer", Parameter], round(extract(., DT_bounds[Type ==  "integer", Parameter])))
+    ##Add a heat map with the predicted MSE on the parameter space
+    Pred_space <-
+      apply(val$tries, 1, function(x)
+        Min_Max_Inverse_Scale_Vec(x, lower = DT_bounds[, Lower], upper = DT_bounds[, Upper]))
+    HM <- as.data.frame(t(rbind(Pred_space, t(val$pred))))
     # Function Evaluation
     Next_Log <- utils::capture.output({
       Next_Time <- system.time({
@@ -204,7 +216,8 @@ BayesianOptimization <- function(FUN, bounds, init_grid_dt = NULL, init_points =
   Result <- list(Best_Par = Best_Par,
                  Best_Value = Best_Value,
                  History = DT_history,
-                 Pred = Pred_DT)
+                 Pred = Pred_DT,
+                 HM = HM)
   # Printing Best
   cat("\n Best Parameters Found: \n")
   paste(names(DT_history),
