@@ -39,10 +39,11 @@ Utility_Max <- function(DT_bounds, GP, acq = "ucb", y_max, kappa, eps) {
   # Return Best set of Parameters
   argmax <- as.numeric(Mat_optim[which.min(Negetive_Utility), DT_bounds[, Parameter], with = FALSE])
   ## We add the prediction MSE on the Mat_tries matrix to the return
-  PredictedError = predict.GP(GP, Mat_tries)$MSE
+  p<-predict.GP(GP, Mat_tries)
+  PredictedMax = kappa*sqrt(p$MSE)+p$Y_hat
   ret <- list(argmax=argmax,
               tries=Mat_tries,
-              pred=PredictedError)
+              pred=PredictedMax)
   return(ret)
 }
 utils::globalVariables(c("Lower", "Upper", "Parameter", "Negetive_Utility"))
